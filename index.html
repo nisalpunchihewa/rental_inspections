@@ -1,0 +1,1663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rental Inspection Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Source+Code+Pro:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-base:        #1a1e26;
+    --bg-surface:     #20252f;
+    --bg-raised:      #262c38;
+    --bg-card:        #2c3340;
+    --bg-hover:       #303848;
+    --border:         #3a4255;
+    --border-subtle:  #313a4d;
+    --text-primary:   #dce3ef;
+    --text-secondary: #c4cedf;
+    --text-muted:     #7a8aaa;
+    --teal:           #4ec9b8;
+    --teal-dim:       rgba(78,201,184,0.10);
+    --teal-mid:       rgba(78,201,184,0.30);
+    --blue:           #7eb8d4;
+    --blue-dim:       rgba(126,184,212,0.12);
+    --blue-border:    rgba(126,184,212,0.38);
+    --amber:          #e0a955;
+    --amber-dim:      rgba(224,169,85,0.12);
+    --amber-border:   rgba(224,169,85,0.40);
+    --red-soft:       #e07070;
+    --red-dim:        rgba(224,112,112,0.12);
+    --red-border:     rgba(224,112,112,0.40);
+    --yellow-soft:    #d4b84a;
+    --green-soft:     #5cc98a;
+    --green-dim:      rgba(92,201,138,0.12);
+    --green-border:   rgba(92,201,138,0.40);
+    --purple:         #b39ddb;
+    --purple-dim:     rgba(179,157,219,0.12);
+    --gray-ind:       #4a5568;
+    --radius-sm:      4px;
+    --radius:         7px;
+    --radius-lg:      10px;
+    --font-ui:        'Lato', 'Calibri', 'Trebuchet MS', sans-serif;
+    --font-mono:      'Source Code Pro', 'Consolas', monospace;
+    --shadow-sm:      0 1px 3px rgba(0,0,0,0.30);
+    --shadow:         0 2px 8px rgba(0,0,0,0.40);
+    --shadow-lg:      0 12px 40px rgba(0,0,0,0.55);
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: 17px;
+    line-height: 1.65;
+    font-weight: 400;
+  }
+  * { -webkit-font-smoothing: antialiased; }
+  a { color: var(--blue); }
+
+  ::-webkit-scrollbar { width: 7px; height: 7px; }
+  ::-webkit-scrollbar-track { background: var(--bg-raised); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+
+  /* ── layout ── */
+  #app { display: flex; flex-direction: column; min-height: 100vh; }
+
+  header {
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 22px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .app-title {
+    font-size: 12px; letter-spacing: 0.14em; color: var(--text-muted);
+    text-transform: uppercase; white-space: nowrap; padding: 16px 0;
+    font-family: var(--font-mono);
+  }
+  .tab-nav { display: flex; flex: 1; }
+  .tab-btn {
+    background: none; border: none; border-bottom: 2px solid transparent;
+    color: var(--text-muted); cursor: pointer; font-family: var(--font-ui);
+    font-size: 15px; letter-spacing: 0.03em; padding: 18px 18px 16px;
+    transition: color .18s, border-color .18s; white-space: nowrap;
+  }
+  .tab-btn:hover { color: var(--text-primary); }
+  .tab-btn.active { color: var(--teal); border-bottom-color: var(--teal); }
+  .tab-count {
+    font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);
+    background: var(--bg-raised); border-radius: 9px; padding: 1px 7px; margin-left: 6px;
+  }
+
+  .sync-pill {
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: .05em;
+    padding: 4px 11px; border-radius: var(--radius-sm); white-space: nowrap;
+    border: 1px solid var(--border); color: var(--text-muted); background: var(--bg-raised);
+    cursor: pointer;
+  }
+  .sync-pill.ok   { color: var(--green-soft); border-color: var(--green-border); background: var(--green-dim); }
+  .sync-pill.busy { color: var(--blue);       border-color: var(--blue-border);  background: var(--blue-dim); }
+  .sync-pill.err  { color: var(--red-soft);   border-color: var(--red-border);   background: var(--red-dim); }
+
+  .tab-panel { display: none; flex: 1; padding: 22px; }
+  .tab-panel.active { display: block; }
+
+  .section-label {
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--text-muted); margin-bottom: 11px;
+  }
+
+  /* ── buttons ── */
+  button { font-family: var(--font-ui); cursor: pointer; border: none; outline: none;
+           transition: background .15s, color .15s, border-color .15s, opacity .15s; }
+  .btn-primary { background: var(--teal-dim); color: var(--teal); border: 1px solid var(--teal-mid);
+                 border-radius: var(--radius-sm); padding: 7px 17px; font-size: 14.5px; }
+  .btn-primary:hover { background: var(--teal); color: #12161c; border-color: var(--teal); }
+  .btn-secondary { background: var(--bg-raised); color: var(--text-secondary); border: 1px solid var(--border);
+                   border-radius: var(--radius-sm); padding: 7px 16px; font-size: 14.5px; }
+  .btn-secondary:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .btn-ghost { background: none; color: var(--text-muted); border: 1px solid var(--border);
+               border-radius: var(--radius-sm); padding: 5px 12px; font-size: 13.5px; }
+  .btn-ghost:hover { color: var(--text-primary); border-color: var(--text-muted); }
+  .btn-danger { background: var(--red-dim); color: var(--red-soft); border: 1px solid var(--red-border);
+                border-radius: var(--radius-sm); padding: 6px 14px; font-size: 14px; }
+  .btn-danger:hover { background: var(--red-soft); color: #fff; }
+  .btn-amber { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber-border);
+               border-radius: var(--radius-sm); padding: 6px 14px; font-size: 14px; }
+  .btn-amber:hover { background: var(--amber); color: #12161c; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+
+  /* ── form controls ── */
+  input, select, textarea {
+    background: var(--bg-raised); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text-primary); font-family: var(--font-ui); font-size: 14.5px;
+    padding: 8px 11px; outline: none; transition: border-color .13s, box-shadow .13s; width: 100%;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--teal); box-shadow: 0 0 0 2px rgba(78,201,184,.12); }
+  select option { background: var(--bg-surface); color: var(--text-primary); }
+  textarea { resize: vertical; font-family: var(--font-mono); font-size: 13.5px; line-height: 1.7; }
+  label { display: block; }
+
+  /* ── toolbar ── */
+  .toolbar { display: flex; gap: 9px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
+  .toolbar input, .toolbar select { width: auto; min-width: 130px; }
+  .toolbar .grow { flex: 1; min-width: 190px; }
+
+  /* ── property grid ── */
+  .prop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; }
+
+  .prop-card {
+    background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+    padding: 15px 16px 13px; display: flex; flex-direction: column; gap: 9px;
+    transition: border-color .16s, transform .16s; position: relative; cursor: pointer;
+  }
+  .prop-card:hover { border-color: var(--teal-mid); transform: translateY(-1px); }
+  .prop-card.picked { border-color: var(--blue); box-shadow: 0 0 0 1px var(--blue-border); }
+  .prop-card.dimmed { opacity: .5; }
+
+  .pc-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .pc-addr { font-size: 15.5px; line-height: 1.35; color: var(--text-primary); }
+  .pc-sub { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em;
+            text-transform: uppercase; color: var(--text-muted); margin-top: 2px; }
+  .pc-price { font-family: var(--font-mono); font-size: 19px; color: var(--teal); white-space: nowrap; }
+  .pc-price small { font-size: 11px; color: var(--text-muted); letter-spacing: .05em; }
+
+  .chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: .04em;
+    background: var(--bg-raised); border: 1px solid var(--border-subtle);
+    border-radius: 14px; padding: 2px 10px; color: var(--text-secondary); white-space: nowrap;
+  }
+  .chip.accent { color: var(--blue); border-color: var(--blue-border); background: var(--blue-dim); }
+
+  .pill {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+    border-radius: var(--radius-sm); padding: 2px 8px; border: 1px solid var(--border); color: var(--text-muted);
+  }
+  .pill.interested { color: var(--text-secondary); }
+  .pill.booked     { color: var(--blue);   border-color: var(--blue-border);  background: var(--blue-dim); }
+  .pill.inspected  { color: var(--purple); border-color: rgba(179,157,219,.4); background: var(--purple-dim); }
+  .pill.applied    { color: var(--amber);  border-color: var(--amber-border); background: var(--amber-dim); }
+  .pill.approved   { color: var(--green-soft); border-color: var(--green-border); background: var(--green-dim); }
+  .pill.passed, .pill.missed { color: var(--red-soft); border-color: var(--red-border); background: var(--red-dim); }
+
+  .verify-flag {
+    font-family: var(--font-mono); font-size: 11.5px; letter-spacing: .05em;
+    color: var(--amber); background: var(--amber-dim); border: 1px solid var(--amber-border);
+    border-radius: var(--radius-sm); padding: 2px 8px;
+  }
+  .verify-flag.done { color: var(--green-soft); background: var(--green-dim); border-color: var(--green-border); }
+
+  .pc-next { font-family: var(--font-mono); font-size: 12.5px; color: var(--text-secondary);
+             border-top: 1px solid var(--border-subtle); padding-top: 8px; }
+  .pc-next.none { color: var(--text-muted); }
+  .pc-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+
+  .stars { font-size: 14px; letter-spacing: 2px; color: var(--gray-ind); user-select: none; }
+  .stars .on { color: var(--yellow-soft); }
+  .stars button { background: none; border: none; color: inherit; font-size: 15px; padding: 0 1px; }
+
+  .pick-box { display: flex; align-items: center; gap: 6px; font-family: var(--font-mono);
+              font-size: 11.5px; color: var(--text-muted); letter-spacing: .06em; }
+  .pick-box input { width: 15px; height: 15px; accent-color: var(--blue); }
+
+  .thumb-strip { display: flex; gap: 4px; overflow: hidden; }
+  .thumb-strip img { width: 54px; height: 40px; object-fit: cover; border-radius: var(--radius-sm);
+                     border: 1px solid var(--border); }
+
+  .empty {
+    border: 1px dashed var(--border); border-radius: var(--radius-lg); padding: 42px 24px;
+    text-align: center; color: var(--text-muted); font-family: var(--font-mono); font-size: 13.5px;
+    line-height: 2;
+  }
+
+  /* ── modal ── */
+  .backdrop {
+    position: fixed; inset: 0; background: rgba(10,13,18,.72); z-index: 200;
+    display: none; align-items: flex-start; justify-content: center; padding: 30px 16px; overflow-y: auto;
+  }
+  .backdrop.open { display: flex; }
+  .modal {
+    background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg); width: 100%; max-width: 880px; margin: auto 0;
+  }
+  .modal.narrow { max-width: 620px; }
+  .modal-head {
+    display: flex; justify-content: space-between; align-items: center; gap: 14px;
+    padding: 15px 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0;
+    background: var(--bg-surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; z-index: 2;
+  }
+  .modal-title { font-family: var(--font-mono); font-size: 13px; letter-spacing: .12em;
+                 text-transform: uppercase; color: var(--text-secondary); }
+  .modal-body { padding: 20px; }
+  .modal-foot { padding: 14px 20px; border-top: 1px solid var(--border); display: flex;
+                justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .x-btn { background: none; border: none; color: var(--text-muted); font-size: 20px; line-height: 1; padding: 4px 6px; }
+  .x-btn:hover { color: var(--text-primary); }
+
+  /* ── field grids ── */
+  .fld-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .fld { display: flex; flex-direction: column; gap: 4px; }
+  .fld-label { font-family: var(--font-mono); font-size: 11.5px; letter-spacing: .09em;
+               text-transform: uppercase; color: var(--text-muted); display: flex;
+               align-items: center; justify-content: space-between; gap: 6px; }
+  .fld.key input { border-color: var(--amber-border); background: rgba(224,169,85,.05); }
+  .fld.key.ok input { border-color: var(--green-border); background: rgba(92,201,138,.05); }
+  .vbtn { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .06em; padding: 1px 7px;
+          border-radius: 3px; border: 1px solid var(--amber-border); background: var(--amber-dim); color: var(--amber); }
+  .vbtn.ok { border-color: var(--green-border); background: var(--green-dim); color: var(--green-soft); }
+
+  .subhead { font-family: var(--font-mono); font-size: 11.5px; letter-spacing: .13em; text-transform: uppercase;
+             color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 5px;
+             margin: 22px 0 13px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .subhead:first-child { margin-top: 0; }
+
+  /* ── inspections / log rows ── */
+  .row-item {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: var(--bg-raised); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius); padding: 8px 11px; margin-bottom: 7px;
+  }
+  .row-item .when { font-family: var(--font-mono); font-size: 13px; color: var(--text-primary); }
+  .row-item .meta { font-size: 13px; color: var(--text-muted); flex: 1; min-width: 100px; }
+  .row-item.attended { border-color: var(--green-border); background: var(--green-dim); }
+  .quick-add { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
+  .quick-add input { width: auto; }
+
+  /* ── photos ── */
+  .dropzone {
+    border: 1px dashed var(--border); border-radius: var(--radius); padding: 18px;
+    text-align: center; color: var(--text-muted); font-family: var(--font-mono); font-size: 12.5px;
+    letter-spacing: .04em; transition: border-color .15s, background .15s; cursor: pointer; line-height: 1.9;
+  }
+  .dropzone:hover, .dropzone.hot { border-color: var(--teal); background: var(--teal-dim); color: var(--teal); }
+  .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap: 9px; margin-top: 11px; }
+  .photo-cell { position: relative; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+  .photo-cell img { width: 100%; height: 108px; object-fit: cover; display: block; cursor: zoom-in; }
+  .photo-cell .del {
+    position: absolute; top: 4px; right: 4px; background: rgba(10,13,18,.8); color: var(--red-soft);
+    border: 1px solid var(--red-border); border-radius: 3px; font-size: 12px; line-height: 1; padding: 3px 6px;
+  }
+  .photo-cell input { border: none; border-top: 1px solid var(--border); border-radius: 0;
+                      font-size: 12px; padding: 5px 7px; background: var(--bg-raised); }
+
+  /* ── compare ── */
+  .cmp-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-lg); }
+  table.cmp { border-collapse: collapse; width: 100%; min-width: 620px; }
+  table.cmp th, table.cmp td { border-bottom: 1px solid var(--border-subtle); padding: 9px 13px;
+                               text-align: left; vertical-align: top; font-size: 14.5px; }
+  table.cmp th.rowlab { font-family: var(--font-mono); font-size: 11.5px; letter-spacing: .09em;
+                        text-transform: uppercase; color: var(--text-muted); width: 165px;
+                        background: var(--bg-raised); white-space: nowrap; }
+  table.cmp thead th { background: var(--bg-raised); position: sticky; top: 0; }
+  table.cmp td.best { color: var(--green-soft); background: var(--green-dim); }
+  table.cmp td.miss { color: var(--text-muted); }
+  .cmp-head-addr { font-size: 15px; line-height: 1.35; }
+  .cmp-head-sub { font-family: var(--font-mono); font-size: 11.5px; letter-spacing: .08em;
+                  text-transform: uppercase; color: var(--text-muted); }
+
+  /* ── calendar ── */
+  .cal-day { margin-bottom: 20px; }
+  .cal-day-head {
+    display: flex; align-items: baseline; gap: 12px; border-bottom: 1px solid var(--border);
+    padding-bottom: 6px; margin-bottom: 10px;
+  }
+  .cal-date { font-family: var(--font-mono); font-size: 14px; letter-spacing: .1em;
+              text-transform: uppercase; color: var(--teal); }
+  .cal-meta { font-size: 13px; color: var(--text-muted); }
+  .cal-item {
+    display: flex; gap: 14px; align-items: flex-start; background: var(--bg-surface);
+    border: 1px solid var(--border); border-left: 3px solid var(--border);
+    border-radius: var(--radius); padding: 10px 13px; margin-bottom: 7px; cursor: pointer;
+    transition: border-color .15s;
+  }
+  .cal-item:hover { border-color: var(--teal-mid); }
+  .cal-item.clash { border-left-color: var(--red-soft); }
+  .cal-item.tight { border-left-color: var(--amber); }
+  .cal-time { font-family: var(--font-mono); font-size: 15px; color: var(--text-primary); width: 78px; flex-shrink: 0; }
+  .cal-body { flex: 1; min-width: 0; }
+  .cal-addr { font-size: 15px; }
+  .cal-sub  { font-family: var(--font-mono); font-size: 12px; letter-spacing: .07em;
+              text-transform: uppercase; color: var(--text-muted); }
+  .cal-warn { font-family: var(--font-mono); font-size: 12px; color: var(--red-soft); margin-top: 3px; }
+  .cal-warn.soft { color: var(--amber); }
+
+  /* ── misc ── */
+  .note-box { background: var(--bg-raised); border: 1px solid var(--border-subtle);
+              border-radius: var(--radius); padding: 12px 14px; font-size: 14px;
+              color: var(--text-secondary); line-height: 1.75; }
+  .note-box code { font-family: var(--font-mono); font-size: 13px; color: var(--teal); }
+  .toast {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 10px 20px; font-family: var(--font-mono); font-size: 13.5px; color: var(--text-primary);
+    box-shadow: var(--shadow); z-index: 400; opacity: 0; transition: transform .25s, opacity .25s;
+    pointer-events: none; max-width: 90vw; text-align: center;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  .toast.bad { border-color: var(--red-border); color: var(--red-soft); }
+  .toast.good { border-color: var(--green-border); color: var(--green-soft); }
+
+  .lightbox { position: fixed; inset: 0; background: rgba(8,10,14,.93); z-index: 500;
+              display: none; align-items: center; justify-content: center; padding: 30px; cursor: zoom-out; }
+  .lightbox.open { display: flex; }
+  .lightbox img { max-width: 100%; max-height: 100%; border-radius: var(--radius); }
+
+  .spin { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--border);
+          border-top-color: var(--teal); border-radius: 50%; animation: sp .7s linear infinite;
+          vertical-align: -1px; margin-right: 6px; }
+  @keyframes sp { to { transform: rotate(360deg); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  }
+  @media (max-width: 700px) {
+    header { flex-wrap: wrap; gap: 10px; padding: 0 14px; }
+    .tab-btn { padding: 12px 12px 10px; font-size: 14px; }
+    .tab-panel { padding: 15px; }
+    .prop-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="app-title">Rental Inspection Tracker</div>
+    <nav class="tab-nav">
+      <button class="tab-btn active" data-tab="properties">Properties<span class="tab-count" id="cnt-props">0</span></button>
+      <button class="tab-btn" data-tab="compare">Compare<span class="tab-count" id="cnt-picked">0</span></button>
+      <button class="tab-btn" data-tab="calendar">Calendar<span class="tab-count" id="cnt-insp">0</span></button>
+      <button class="tab-btn" data-tab="settings">Settings</button>
+    </nav>
+    <button class="sync-pill" id="sync-pill" onclick="loadAll()">not connected</button>
+  </header>
+
+  <!-- ══════════ PROPERTIES ══════════ -->
+  <section class="tab-panel active" id="tab-properties">
+    <div class="toolbar">
+      <button class="btn-primary" onclick="openImport()">+ Add from listing</button>
+      <button class="btn-secondary" onclick="openDetail(null)">+ Add blank</button>
+      <input class="grow" id="f-search" placeholder="Search address, suburb, agent, notes…" oninput="renderProps()">
+      <select id="f-status" onchange="renderProps()">
+        <option value="">Any status</option>
+        <option value="interested">Interested</option>
+        <option value="booked">Inspection booked</option>
+        <option value="inspected">Inspected</option>
+        <option value="applied">Applied</option>
+        <option value="approved">Approved</option>
+        <option value="missed">Missed</option>
+        <option value="passed">Passed on</option>
+      </select>
+      <input id="f-maxprice" type="number" placeholder="Max $/wk" style="width:110px" oninput="renderProps()">
+      <input id="f-minbeds" type="number" placeholder="Min beds" style="width:105px" oninput="renderProps()">
+      <select id="f-sort" onchange="renderProps()">
+        <option value="added">Newest first</option>
+        <option value="price">Price low→high</option>
+        <option value="rating">My rating</option>
+        <option value="suburb">Suburb A→Z</option>
+        <option value="inspection">Next inspection</option>
+      </select>
+      <button class="btn-ghost" id="arch-toggle" onclick="toggleArchived()">Hide archived</button>
+    </div>
+    <div class="prop-grid" id="prop-grid"></div>
+  </section>
+
+  <!-- ══════════ COMPARE ══════════ -->
+  <section class="tab-panel" id="tab-compare">
+    <div class="toolbar">
+      <div class="section-label" style="margin:0;flex:1">Tick up to three properties on the Properties tab</div>
+      <button class="btn-ghost" onclick="clearPicks()">Clear selection</button>
+    </div>
+    <div id="cmp-out"></div>
+  </section>
+
+  <!-- ══════════ CALENDAR ══════════ -->
+  <section class="tab-panel" id="tab-calendar">
+    <div class="toolbar">
+      <select id="c-range" onchange="renderCal()">
+        <option value="weekend">This weekend</option>
+        <option value="next">Next weekend</option>
+        <option value="7">Next 7 days</option>
+        <option value="all" selected>All upcoming</option>
+        <option value="past">Past inspections</option>
+      </select>
+      <select id="c-suburb" onchange="renderCal()"><option value="">All suburbs</option></select>
+      <select id="c-sort" onchange="renderCal()">
+        <option value="time">Sort by time</option>
+        <option value="suburb">Group by suburb, then time</option>
+      </select>
+      <div style="flex:1"></div>
+      <button class="btn-secondary" onclick="copyDayPlan()">Copy plan to clipboard</button>
+    </div>
+    <div id="cal-out"></div>
+  </section>
+
+  <!-- ══════════ SETTINGS ══════════ -->
+  <section class="tab-panel" id="tab-settings">
+    <div style="max-width:760px">
+      <div class="subhead">Supabase</div>
+      <div class="fld-grid">
+        <div class="fld" style="grid-column:1/-1">
+          <div class="fld-label">Project URL</div>
+          <input id="s-sb-url" placeholder="https://xxxxxxxxxxxx.supabase.co">
+        </div>
+        <div class="fld" style="grid-column:1/-1">
+          <div class="fld-label">Anon public key</div>
+          <input id="s-sb-key" type="password" placeholder="eyJhbGciOi…">
+        </div>
+      </div>
+      <div class="quick-add" style="margin-top:11px">
+        <button class="btn-primary" onclick="saveSupabase()">Save and connect</button>
+        <button class="btn-ghost" onclick="testSupabase()">Test connection</button>
+      </div>
+      <div class="note-box" style="margin-top:12px">
+        Settings → API in your Supabase project. Use the <code>anon public</code> key, never the service role key.
+        These are stored in this browser only, so you'll paste them once per laptop. The data itself lives in Supabase.
+      </div>
+
+      <div class="subhead">Gemini</div>
+      <div class="fld-grid">
+        <div class="fld" style="grid-column:1/-1">
+          <div class="fld-label">API key</div>
+          <input id="s-gm-key" type="password" placeholder="AIza…">
+        </div>
+        <div class="fld">
+          <div class="fld-label">Model</div>
+          <input id="s-gm-model" placeholder="gemini-2.5-flash">
+        </div>
+      </div>
+      <div class="quick-add" style="margin-top:11px">
+        <button class="btn-primary" onclick="saveGemini()">Save</button>
+        <button class="btn-ghost" onclick="listModels()">Check available models</button>
+      </div>
+      <div id="model-list" style="margin-top:10px"></div>
+
+      <div class="subhead">Backup</div>
+      <div class="quick-add">
+        <button class="btn-secondary" onclick="exportJson()">Download JSON backup</button>
+        <button class="btn-secondary" onclick="document.getElementById('imp-file').click()">Restore from JSON</button>
+        <input type="file" id="imp-file" accept=".json" style="display:none" onchange="importJson(this)">
+      </div>
+      <div class="note-box" style="margin-top:12px">
+        Photos live in Supabase Storage and aren't included in the JSON — the backup holds their links.
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ══════════ IMPORT MODAL ══════════ -->
+<div class="backdrop" id="import-modal">
+  <div class="modal narrow">
+    <div class="modal-head">
+      <div class="modal-title">Add from listing</div>
+      <button class="x-btn" onclick="closeModal('import-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="fld">
+        <div class="fld-label">Listing URL</div>
+        <input id="imp-url" placeholder="https://www.domain.com.au/…">
+      </div>
+      <div class="quick-add" style="margin-top:11px">
+        <button class="btn-primary" id="imp-go" onclick="runExtract()">Extract with Gemini</button>
+        <button class="btn-ghost" onclick="skipToBlank()">Skip, enter manually</button>
+      </div>
+      <div id="imp-status" style="margin-top:12px"></div>
+      <div class="subhead" style="margin-top:20px">If the site blocks the fetch</div>
+      <div class="note-box" style="margin-bottom:10px">
+        Open the listing, select all (Ctrl/Cmd+A), copy, and paste below. Gemini reads that instead.
+      </div>
+      <textarea id="imp-text" rows="5" placeholder="Paste the copied listing page here…"></textarea>
+      <button class="btn-secondary" style="margin-top:9px" onclick="runExtract(true)">Extract from pasted text</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ DETAIL MODAL ══════════ -->
+<div class="backdrop" id="detail-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="detail-title">Property</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span id="detail-verify"></span>
+        <button class="x-btn" onclick="closeDetail()">×</button>
+      </div>
+    </div>
+    <div class="modal-body" id="detail-body"></div>
+    <div class="modal-foot">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-danger" onclick="deleteProp()">Delete</button>
+        <button class="btn-ghost" onclick="archiveProp()" id="arch-btn">Archive</button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-ghost" onclick="closeDetail()">Close</button>
+        <button class="btn-primary" onclick="saveProp()" id="save-btn">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox" onclick="this.classList.remove('open')"><img id="lightbox-img" alt=""></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   STATE + CONFIG
+══════════════════════════════════════════════════════════ */
+let DB = [];               // all property records
+let picks = [];            // ids selected for compare
+let showArchived = false;
+let current = null;        // record open in the detail modal
+let dirty = false;
+
+const LS = {
+  sbUrl:   'rt_sb_url',
+  sbKey:   'rt_sb_key',
+  gmKey:   'rt_gm_key',
+  gmModel: 'rt_gm_model',
+  cache:   'rt_cache',
+  picks:   'rt_picks'
+};
+const BUCKET = 'property-photos';
+const KEY_FIELDS = ['price','beds','baths','cars','contact'];
+const KEY_LABEL  = { price:'Rent', beds:'Bedrooms', baths:'Bathrooms', cars:'Car spaces', contact:'Agent contact' };
+
+const cfg = k => (localStorage.getItem(k) || '').trim();
+const sbUrl = () => cfg(LS.sbUrl).replace(/\/+$/, '');
+const sbKey = () => cfg(LS.sbKey);
+const gmModel = () => cfg(LS.gmModel) || 'gemini-2.5-flash';
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function toast(msg, kind) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (kind ? ' ' + kind : '');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => { t.className = 'toast'; }, 3200);
+}
+
+function setSync(text, kind) {
+  const p = $('sync-pill');
+  p.textContent = text;
+  p.className = 'sync-pill' + (kind ? ' ' + kind : '');
+}
+
+/* ══════════════════════════════════════════════════════════
+   SUPABASE (plain REST — no SDK)
+══════════════════════════════════════════════════════════ */
+function sbReady() { return !!(sbUrl() && sbKey()); }
+
+async function sb(path, opts = {}) {
+  if (!sbReady()) throw new Error('Supabase not configured. Open Settings and paste your project URL and anon key.');
+  const res = await fetch(sbUrl() + path, {
+    ...opts,
+    headers: {
+      apikey: sbKey(),
+      Authorization: 'Bearer ' + sbKey(),
+      'Content-Type': 'application/json',
+      ...(opts.headers || {})
+    }
+  });
+  const raw = await res.text();
+  if (!res.ok) {
+    let msg = raw;
+    try { const j = JSON.parse(raw); msg = j.message || j.error || j.hint || raw; } catch (e) {}
+    throw new Error('Supabase ' + res.status + ': ' + msg);
+  }
+  return raw ? JSON.parse(raw) : null;
+}
+
+async function loadAll() {
+  if (!sbReady()) { setSync('not connected', 'err'); renderAll(); return; }
+  setSync('loading…', 'busy');
+  try {
+    const rows = await sb('/rest/v1/properties?select=*&order=created_at.desc');
+    DB = rows || [];
+    localStorage.setItem(LS.cache, JSON.stringify(DB));
+    setSync('synced · ' + DB.length, 'ok');
+  } catch (e) {
+    const cached = localStorage.getItem(LS.cache);
+    if (cached) { DB = JSON.parse(cached); setSync('offline · cached', 'err'); }
+    else setSync('error', 'err');
+    toast(e.message, 'bad');
+  }
+  renderAll();
+}
+
+async function insertRow(rec) {
+  const row = await sb('/rest/v1/properties', {
+    method: 'POST',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify(rec)
+  });
+  return Array.isArray(row) ? row[0] : row;
+}
+
+async function updateRow(id, patch) {
+  patch.updated_at = new Date().toISOString();
+  const row = await sb('/rest/v1/properties?id=eq.' + id, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify(patch)
+  });
+  return Array.isArray(row) ? row[0] : row;
+}
+
+async function deleteRow(id) {
+  await sb('/rest/v1/properties?id=eq.' + id, { method: 'DELETE' });
+}
+
+async function uploadPhoto(file, propId) {
+  const ext = (file.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+  const path = (propId || 'unfiled') + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
+  const res = await fetch(sbUrl() + '/storage/v1/object/' + BUCKET + '/' + path, {
+    method: 'POST',
+    headers: { apikey: sbKey(), Authorization: 'Bearer ' + sbKey(), 'Content-Type': file.type || 'image/png' },
+    body: file
+  });
+  if (!res.ok) throw new Error('Photo upload failed (' + res.status + '). Check the property-photos bucket exists.');
+  return { path, url: sbUrl() + '/storage/v1/object/public/' + BUCKET + '/' + path, caption: '' };
+}
+
+async function removePhoto(path) {
+  try {
+    await fetch(sbUrl() + '/storage/v1/object/' + BUCKET + '/' + path, {
+      method: 'DELETE',
+      headers: { apikey: sbKey(), Authorization: 'Bearer ' + sbKey() }
+    });
+  } catch (e) { /* orphaned file is harmless */ }
+}
+
+/* ══════════════════════════════════════════════════════════
+   HELPERS
+══════════════════════════════════════════════════════════ */
+const blank = () => ({
+  address:'', suburb:'', postcode:'', listing_url:'',
+  price_per_week:null, price_note:'', bedrooms:null, bathrooms:null, car_spaces:null,
+  agent_name:'', agent_phone:'', agent_email:'', agency:'',
+  property_type:'', parking_type:'', bond:null, available_date:'', lease_term:'',
+  furnished:'', pets:'', heating:'', cooling:'', laundry:'', outdoor:'',
+  storage_space:'', internet:'', bills_included:'', transport:'', description:'',
+  status:'interested', rating:0, pros:'', cons:'', red_flags:'', notes:'',
+  verified:{}, inspections:[], photos:[], correspondence:[], archived:false
+});
+
+function unverifiedCount(p) {
+  const v = p.verified || {};
+  return KEY_FIELDS.filter(k => !v[k]).length;
+}
+
+function money(n) { return (n == null || n === '') ? '—' : '$' + Number(n).toLocaleString(); }
+
+function fmtDT(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d)) return iso;
+  return d.toLocaleDateString(undefined, { weekday:'short', day:'numeric', month:'short' }) +
+         ' · ' + d.toLocaleTimeString(undefined, { hour:'numeric', minute:'2-digit' });
+}
+function fmtTime(iso) {
+  const d = new Date(iso);
+  return isNaN(d) ? '' : d.toLocaleTimeString(undefined, { hour:'numeric', minute:'2-digit' });
+}
+function dayKey(iso) { const d = new Date(iso); return isNaN(d) ? '' : d.toISOString().slice(0, 10); }
+
+function allInspections(list) {
+  const out = [];
+  (list || DB).forEach(p => (p.inspections || []).forEach((ins, i) => out.push({ ...ins, _p: p, _i: i })));
+  return out.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+}
+
+function nextInspection(p) {
+  const now = Date.now();
+  return (p.inspections || [])
+    .filter(i => new Date(i.starts_at).getTime() >= now - 36e5)
+    .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at))[0] || null;
+}
+
+/* ══════════════════════════════════════════════════════════
+   TABS
+══════════════════════════════════════════════════════════ */
+document.querySelectorAll('.tab-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    $('tab-' + b.dataset.tab).classList.add('active');
+    if (b.dataset.tab === 'compare')  renderCompare();
+    if (b.dataset.tab === 'calendar') renderCal();
+  });
+});
+function goTab(name) { document.querySelector('.tab-btn[data-tab="' + name + '"]').click(); }
+
+function renderAll() { renderProps(); renderCompare(); renderCal(); refreshCounts(); }
+function refreshCounts() {
+  $('cnt-props').textContent  = DB.filter(p => showArchived || !p.archived).length;
+  $('cnt-picked').textContent = picks.length;
+  $('cnt-insp').textContent   = allInspections().filter(i => new Date(i.starts_at) >= new Date()).length;
+}
+
+/* ══════════════════════════════════════════════════════════
+   PROPERTIES TAB
+══════════════════════════════════════════════════════════ */
+function toggleArchived() {
+  showArchived = !showArchived;
+  $('arch-toggle').textContent = showArchived ? 'Showing archived' : 'Hide archived';
+  renderProps(); refreshCounts();
+}
+
+function filteredProps() {
+  const q   = $('f-search').value.trim().toLowerCase();
+  const st  = $('f-status').value;
+  const mx  = parseFloat($('f-maxprice').value);
+  const mb  = parseFloat($('f-minbeds').value);
+  const srt = $('f-sort').value;
+
+  let list = DB.filter(p => showArchived || !p.archived);
+  if (q) list = list.filter(p => [p.address, p.suburb, p.agent_name, p.agency, p.notes, p.pros, p.cons, p.red_flags]
+    .join(' ').toLowerCase().includes(q));
+  if (st) list = list.filter(p => p.status === st);
+  if (!isNaN(mx)) list = list.filter(p => p.price_per_week != null && Number(p.price_per_week) <= mx);
+  if (!isNaN(mb)) list = list.filter(p => p.bedrooms != null && Number(p.bedrooms) >= mb);
+
+  const big = 8.64e15;
+  const sorters = {
+    added:      (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0),
+    price:      (a, b) => (a.price_per_week ?? 1e9) - (b.price_per_week ?? 1e9),
+    rating:     (a, b) => (b.rating || 0) - (a.rating || 0),
+    suburb:     (a, b) => (a.suburb || 'zzz').localeCompare(b.suburb || 'zzz'),
+    inspection: (a, b) => {
+      const av = nextInspection(a), bv = nextInspection(b);
+      return (av ? new Date(av.starts_at).getTime() : big) - (bv ? new Date(bv.starts_at).getTime() : big);
+    }
+  };
+  return list.sort(sorters[srt] || sorters.added);
+}
+
+function renderProps() {
+  const list = filteredProps();
+  const grid = $('prop-grid');
+  refreshCounts();
+
+  if (!list.length) {
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1">' +
+      (DB.length ? 'No properties match these filters.' :
+       (sbReady() ? 'Nothing saved yet. Add your first listing above.'
+                  : 'Open Settings and connect Supabase, then add your first listing.')) +
+      '</div>';
+    return;
+  }
+
+  grid.innerHTML = list.map(p => {
+    const uv = unverifiedCount(p);
+    const nx = nextInspection(p);
+    const beds = p.bedrooms ?? '?', baths = p.bathrooms ?? '?', cars = p.car_spaces ?? '?';
+    const photos = (p.photos || []).slice(0, 4);
+    const picked = picks.includes(p.id);
+    return '<div class="prop-card' + (picked ? ' picked' : '') + (p.archived ? ' dimmed' : '') +
+             '" onclick="openDetail(\'' + p.id + '\')">' +
+      '<div class="pc-top"><div style="min-width:0">' +
+        '<div class="pc-addr">' + (esc(p.address) || '<span style="color:var(--text-muted)">Untitled listing</span>') + '</div>' +
+        '<div class="pc-sub">' + (esc(p.suburb) || 'no suburb') + (p.postcode ? ' ' + esc(p.postcode) : '') + '</div>' +
+      '</div>' +
+      '<div style="text-align:right"><div class="pc-price">' + money(p.price_per_week) +
+        '<small> /wk</small></div></div></div>' +
+
+      '<div class="chip-row">' +
+        '<span class="chip">' + beds + ' bed</span>' +
+        '<span class="chip">' + baths + ' bath</span>' +
+        '<span class="chip">' + cars + ' car</span>' +
+        (p.property_type ? '<span class="chip">' + esc(p.property_type) + '</span>' : '') +
+        (p.furnished ? '<span class="chip">' + esc(p.furnished) + '</span>' : '') +
+        (p.available_date ? '<span class="chip accent">avail ' + esc(p.available_date) + '</span>' : '') +
+      '</div>' +
+
+      (photos.length ? '<div class="thumb-strip">' + photos.map(ph =>
+        '<img src="' + esc(ph.url) + '" alt="" loading="lazy">').join('') + '</div>' : '') +
+
+      '<div class="pc-next' + (nx ? '' : ' none') + '">' +
+        (nx ? '▸ ' + fmtDT(nx.starts_at) + (nx.note ? ' — ' + esc(nx.note) : '')
+            : '▸ no inspection booked') +
+        ((p.inspections || []).length > 1 ? '  <span style="color:var(--text-muted)">(+' +
+          ((p.inspections.length) - 1) + ' more)</span>' : '') +
+      '</div>' +
+
+      '<div class="pc-foot" onclick="event.stopPropagation()">' +
+        '<div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">' +
+          '<span class="pill ' + esc(p.status) + '">' + statusLabel(p.status) + '</span>' +
+          '<span class="verify-flag' + (uv ? '' : ' done') + '">' +
+            (uv ? uv + ' to verify' : 'verified') + '</span>' +
+        '</div>' +
+        '<div style="display:flex;gap:10px;align-items:center">' +
+          starHtml(p.rating || 0, p.id) +
+          '<label class="pick-box"><input type="checkbox" ' + (picked ? 'checked' : '') +
+            ' onchange="togglePick(\'' + p.id + '\')">cmp</label>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function statusLabel(s) {
+  return { interested:'interested', booked:'booked', inspected:'inspected', applied:'applied',
+           approved:'approved', missed:'missed', passed:'passed' }[s] || (s || 'interested');
+}
+
+function starHtml(n, id) {
+  let h = '<span class="stars">';
+  for (let i = 1; i <= 5; i++)
+    h += '<button title="' + i + ' star' + (i > 1 ? 's' : '') + '" class="' + (i <= n ? 'on' : '') +
+         '" onclick="setRating(\'' + id + '\',' + i + ')">' + (i <= n ? '★' : '☆') + '</button>';
+  return h + '</span>';
+}
+
+async function setRating(id, n) {
+  if (id === 'CUR') {
+    current.rating = (current.rating === n) ? 0 : n;
+    dirty = true;
+    collect(); drawDetail();
+    return;
+  }
+  const p = DB.find(x => x.id === id); if (!p) return;
+  p.rating = (p.rating === n) ? 0 : n;
+  renderProps();
+  try { await updateRow(id, { rating: p.rating }); } catch (e) { toast(e.message, 'bad'); }
+}
+
+function togglePick(id) {
+  const i = picks.indexOf(id);
+  if (i >= 0) picks.splice(i, 1);
+  else {
+    if (picks.length >= 3) { toast('Compare holds three at a time — untick one first.'); renderProps(); return; }
+    picks.push(id);
+  }
+  localStorage.setItem(LS.picks, JSON.stringify(picks));
+  renderProps(); renderCompare();
+}
+function clearPicks() { picks = []; localStorage.setItem(LS.picks, '[]'); renderProps(); renderCompare(); }
+
+/* ══════════════════════════════════════════════════════════
+   DETAIL MODAL
+══════════════════════════════════════════════════════════ */
+function fld(id, label, val, type, extra) {
+  return '<div class="fld"><div class="fld-label">' + label + '</div>' +
+         '<input id="d-' + id + '" type="' + (type || 'text') + '" value="' + esc(val ?? '') + '" ' +
+         (extra || '') + '></div>';
+}
+function sel(id, label, val, opts) {
+  return '<div class="fld"><div class="fld-label">' + label + '</div><select id="d-' + id + '">' +
+    opts.map(o => '<option value="' + esc(o) + '"' + (o === (val || '') ? ' selected' : '') + '>' +
+      (o || '—') + '</option>').join('') + '</select></div>';
+}
+function keyFld(vkey, id, label, val, type) {
+  const ok = !!(current.verified || {})[vkey];
+  return '<div class="fld key' + (ok ? ' ok' : '') + '" id="kf-' + vkey + '">' +
+    '<div class="fld-label"><span>' + label + '</span>' +
+    '<button class="vbtn' + (ok ? ' ok' : '') + '" onclick="toggleVerify(\'' + vkey + '\')">' +
+      (ok ? '✓ verified' : 'verify') + '</button></div>' +
+    '<input id="d-' + id + '" type="' + (type || 'text') + '" value="' + esc(val ?? '') + '"></div>';
+}
+function area(id, label, val, rows) {
+  return '<div class="fld" style="grid-column:1/-1"><div class="fld-label">' + label + '</div>' +
+    '<textarea id="d-' + id + '" rows="' + (rows || 3) + '">' + esc(val ?? '') + '</textarea></div>';
+}
+
+function openDetail(id) {
+  current = id ? JSON.parse(JSON.stringify(DB.find(p => p.id === id))) : blank();
+  dirty = false;
+  $('detail-title').textContent = id ? (current.address || 'Property') : 'New property';
+  $('arch-btn').textContent = current.archived ? 'Unarchive' : 'Archive';
+  drawDetail();
+  $('detail-modal').classList.add('open');
+}
+
+function drawDetail() {
+  const p = current;
+  const uv = unverifiedCount(p);
+  $('detail-verify').innerHTML = '<span class="verify-flag' + (uv ? '' : ' done') + '">' +
+    (uv ? uv + ' left to verify' : 'all key facts verified') + '</span>';
+
+  $('detail-body').innerHTML =
+    '<div class="subhead">Key facts — confirm each against the listing</div>' +
+    '<div class="fld-grid">' +
+      keyFld('price', 'price_per_week', 'Rent $/week', p.price_per_week, 'number') +
+      keyFld('beds',  'bedrooms',  'Bedrooms',  p.bedrooms,  'number') +
+      keyFld('baths', 'bathrooms', 'Bathrooms', p.bathrooms, 'number') +
+      keyFld('cars',  'car_spaces','Car spaces',p.car_spaces,'number') +
+    '</div>' +
+    '<div class="fld-grid" style="margin-top:12px">' +
+      keyFld('contact', 'agent_phone', 'Agent phone', p.agent_phone) +
+      fld('agent_name', 'Agent name', p.agent_name) +
+      fld('agency', 'Agency', p.agency) +
+      fld('agent_email', 'Agent email', p.agent_email, 'email') +
+    '</div>' +
+
+    '<div class="subhead">Location and listing</div>' +
+    '<div class="fld-grid">' +
+      '<div class="fld" style="grid-column:1/-1"><div class="fld-label">Street address</div>' +
+        '<input id="d-address" value="' + esc(p.address) + '"></div>' +
+      fld('suburb', 'Suburb', p.suburb) +
+      fld('postcode', 'Postcode', p.postcode) +
+      sel('property_type', 'Property type', p.property_type,
+          ['', 'House', 'Apartment', 'Unit', 'Townhouse', 'Villa', 'Studio', 'Duplex', 'Granny flat']) +
+      '<div class="fld" style="grid-column:1/-1"><div class="fld-label">Listing URL</div>' +
+        '<input id="d-listing_url" value="' + esc(p.listing_url) + '"></div>' +
+    '</div>' +
+    (p.listing_url ? '<div style="margin-top:7px"><a href="' + esc(p.listing_url) +
+      '" target="_blank" rel="noopener">Open listing ↗</a></div>' : '') +
+
+    '<div class="subhead">Money and terms</div>' +
+    '<div class="fld-grid">' +
+      '<div class="fld"><div class="fld-label"><span>Bond $</span>' +
+        '<button class="vbtn" onclick="fillBond()">4 weeks</button></div>' +
+        '<input id="d-bond" type="number" value="' + esc(p.bond ?? '') + '"></div>' +
+      fld('available_date', 'Available from', p.available_date, 'text') +
+      fld('lease_term', 'Lease term', p.lease_term) +
+      sel('furnished', 'Furnishing', p.furnished, ['', 'Unfurnished', 'Part furnished', 'Fully furnished']) +
+      sel('bills_included', 'Bills included', p.bills_included, ['', 'None', 'Water', 'Water + gas', 'Some utilities', 'All inclusive']) +
+      fld('price_note', 'Price note', p.price_note) +
+    '</div>' +
+
+    '<div class="subhead">Living details</div>' +
+    '<div class="fld-grid">' +
+      sel('parking_type', 'Parking', p.parking_type, ['', 'Garage', 'Carport', 'Off-street', 'On-street permit', 'None']) +
+      sel('heating', 'Heating', p.heating, ['', 'Ducted', 'Split system', 'Gas heater', 'Hydronic', 'Panel/electric', 'None']) +
+      sel('cooling', 'Cooling', p.cooling, ['', 'Ducted', 'Split system', 'Evaporative', 'Ceiling fans', 'None']) +
+      sel('laundry', 'Laundry', p.laundry, ['', 'Internal', 'European', 'Shared', 'External', 'None']) +
+      sel('pets', 'Pets', p.pets, ['', 'Allowed', 'On application', 'Not allowed', 'Not stated']) +
+      fld('outdoor', 'Outdoor space', p.outdoor) +
+      fld('storage_space', 'Storage / cage', p.storage_space) +
+      fld('internet', 'Internet / NBN', p.internet) +
+      fld('transport', 'Nearest transport', p.transport) +
+    '</div>' +
+
+    '<div class="subhead">Inspections <span style="text-transform:none;letter-spacing:0">' +
+      'add extra times the listing hid behind a button</span></div>' +
+    '<div id="insp-list"></div>' +
+    '<div class="quick-add">' +
+      '<input type="datetime-local" id="ins-when" style="width:215px">' +
+      '<input type="number" id="ins-dur" value="15" style="width:78px" title="minutes">' +
+      '<input type="text" id="ins-note" placeholder="note (e.g. registered, key pickup)" style="min-width:210px;flex:1">' +
+      '<button class="btn-secondary" onclick="addInspection()">Add time</button>' +
+    '</div>' +
+
+    '<div class="subhead">Photos</div>' +
+    '<div class="dropzone" id="dropzone" tabindex="0">' +
+      'Click here then press Ctrl/Cmd+V to paste a screenshot<br>or drop image files anywhere in this box' +
+    '</div>' +
+    '<input type="file" id="photo-file" accept="image/*" multiple style="display:none">' +
+    '<div class="photo-grid" id="photo-grid"></div>' +
+
+    '<div class="subhead">My assessment</div>' +
+    '<div class="fld-grid">' +
+      sel('status', 'Status', p.status, ['interested', 'booked', 'inspected', 'applied', 'approved', 'missed', 'passed']) +
+      '<div class="fld"><div class="fld-label">Rating</div><div style="padding-top:6px">' +
+        starHtml(p.rating || 0, 'CUR') + '</div></div>' +
+      area('pros', 'What works', p.pros, 2) +
+      area('cons', 'What does not', p.cons, 2) +
+      area('red_flags', 'Red flags — damp, mould, noise, light, water pressure', p.red_flags, 2) +
+    '</div>' +
+
+    '<div class="subhead">Correspondence with the agent</div>' +
+    '<div id="corr-list"></div>' +
+    '<div class="quick-add">' +
+      '<select id="cor-ch" style="width:120px"><option>Email</option><option>Phone</option>' +
+        '<option>SMS</option><option>In person</option><option>Portal</option></select>' +
+      '<select id="cor-dir" style="width:110px"><option>Sent</option><option>Received</option></select>' +
+      '<input type="text" id="cor-txt" placeholder="what was said / agreed" style="min-width:230px;flex:1">' +
+      '<button class="btn-secondary" onclick="addCorr()">Log it</button>' +
+    '</div>' +
+
+    '<div class="subhead">Notes</div>' +
+    '<div class="fld-grid">' +
+      area('notes', 'Free notes', p.notes, 4) +
+      area('description', 'Listing description (from AI extract)', p.description, 4) +
+    '</div>';
+
+  drawInspections(); drawPhotos(); drawCorr(); wireDropzone();
+  $('detail-body').querySelectorAll('input,select,textarea')
+    .forEach(el => el.addEventListener('input', () => { dirty = true; }));
+}
+
+function toggleVerify(k) {
+  current.verified = current.verified || {};
+  current.verified[k] = !current.verified[k];
+  dirty = true;
+  collect();
+  drawDetail();
+}
+function fillBond() {
+  const wk = parseFloat($('d-price_per_week').value);
+  if (isNaN(wk)) { toast('Enter the weekly rent first.'); return; }
+  $('d-bond').value = Math.round(wk * 4);
+  dirty = true;
+}
+
+function drawInspections() {
+  const list = (current.inspections || []).slice().sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+  current.inspections = list;
+  $('insp-list').innerHTML = list.length ? list.map((ins, i) =>
+    '<div class="row-item' + (ins.attended ? ' attended' : '') + '">' +
+      '<span class="when">' + fmtDT(ins.starts_at) + '</span>' +
+      '<span class="meta">' + (ins.duration_min || 15) + ' min' + (ins.note ? ' · ' + esc(ins.note) : '') + '</span>' +
+      '<button class="btn-ghost" onclick="markAttended(' + i + ')">' +
+        (ins.attended ? '✓ attended' : 'mark attended') + '</button>' +
+      '<button class="btn-ghost" onclick="delInspection(' + i + ')">remove</button>' +
+    '</div>').join('') :
+    '<div class="note-box" style="margin-bottom:8px">No inspection times yet.</div>';
+}
+function addInspection() {
+  const w = $('ins-when').value;
+  if (!w) { toast('Pick a date and time first.'); return; }
+  current.inspections = current.inspections || [];
+  current.inspections.push({
+    starts_at: new Date(w).toISOString(),
+    duration_min: parseInt($('ins-dur').value) || 15,
+    note: $('ins-note').value.trim(), attended: false
+  });
+  $('ins-note').value = ''; dirty = true;
+  if (current.status === 'interested') { current.status = 'booked'; $('d-status').value = 'booked'; }
+  drawInspections();
+}
+function delInspection(i) { current.inspections.splice(i, 1); dirty = true; drawInspections(); }
+function markAttended(i) {
+  current.inspections[i].attended = !current.inspections[i].attended;
+  if (current.inspections[i].attended && ['interested','booked'].includes(current.status)) {
+    current.status = 'inspected'; $('d-status').value = 'inspected';
+  }
+  dirty = true; drawInspections();
+}
+
+function drawCorr() {
+  const list = (current.correspondence || []).slice().sort((a, b) => new Date(b.at) - new Date(a.at));
+  current.correspondence = list;
+  $('corr-list').innerHTML = list.length ? list.map((c, i) =>
+    '<div class="row-item">' +
+      '<span class="when">' + fmtDT(c.at) + '</span>' +
+      '<span class="chip">' + esc(c.channel) + ' · ' + esc(c.direction) + '</span>' +
+      '<span class="meta">' + esc(c.text) + '</span>' +
+      '<button class="btn-ghost" onclick="delCorr(' + i + ')">remove</button>' +
+    '</div>').join('') :
+    '<div class="note-box" style="margin-bottom:8px">Nothing logged yet.</div>';
+}
+function addCorr() {
+  const t = $('cor-txt').value.trim();
+  if (!t) { toast('Write what was said first.'); return; }
+  current.correspondence = current.correspondence || [];
+  current.correspondence.push({ at: new Date().toISOString(), channel: $('cor-ch').value,
+                                direction: $('cor-dir').value, text: t });
+  $('cor-txt').value = ''; dirty = true; drawCorr();
+}
+function delCorr(i) { current.correspondence.splice(i, 1); dirty = true; drawCorr(); }
+
+/* ── photos ── */
+function drawPhotos() {
+  const ph = current.photos || [];
+  $('photo-grid').innerHTML = ph.map((x, i) =>
+    '<div class="photo-cell">' +
+      '<img src="' + esc(x.url) + '" alt="" onclick="zoom(\'' + esc(x.url) + '\')">' +
+      '<button class="del" onclick="delPhoto(' + i + ')">✕</button>' +
+      '<input value="' + esc(x.caption || '') + '" placeholder="caption" ' +
+        'oninput="setCaption(' + i + ', this.value)">' +
+    '</div>').join('');
+}
+function setCaption(i, v) { if (current && current.photos[i]) { current.photos[i].caption = v; dirty = true; } }
+function zoom(url) { $('lightbox-img').src = url; $('lightbox').classList.add('open'); }
+async function delPhoto(i) {
+  const ph = current.photos[i];
+  current.photos.splice(i, 1); dirty = true; drawPhotos();
+  if (ph.path) removePhoto(ph.path);
+}
+
+function wireDropzone() {
+  const dz = $('dropzone');
+  dz.onclick = () => $('photo-file').click();
+  $('photo-file').onchange = e => { takeFiles([...e.target.files]); e.target.value = ''; };
+  dz.ondragover = e => { e.preventDefault(); dz.classList.add('hot'); };
+  dz.ondragleave = () => dz.classList.remove('hot');
+  dz.ondrop = e => { e.preventDefault(); dz.classList.remove('hot'); takeFiles([...e.dataTransfer.files]); };
+}
+
+document.addEventListener('paste', e => {
+  if (!$('detail-modal').classList.contains('open')) return;
+  const items = [...(e.clipboardData?.items || [])].filter(i => i.type.startsWith('image/'));
+  if (!items.length) return;
+  e.preventDefault();
+  takeFiles(items.map(i => i.getAsFile()).filter(Boolean));
+});
+
+async function takeFiles(files) {
+  files = files.filter(f => f && f.type.startsWith('image/'));
+  if (!files.length) return;
+  if (!sbReady()) { toast('Connect Supabase in Settings before adding photos.', 'bad'); return; }
+  if (!current.id) {
+    toast('Saving the property first…');
+    const ok = await saveProp(true);
+    if (!ok) return;
+  }
+  toast('Uploading ' + files.length + ' photo' + (files.length > 1 ? 's' : '') + '…');
+  for (const f of files) {
+    try {
+      const meta = await uploadPhoto(f, current.id);
+      current.photos = current.photos || [];
+      current.photos.push(meta);
+      drawPhotos();
+      await updateRow(current.id, { photos: current.photos });
+      const live = DB.find(x => x.id === current.id); if (live) live.photos = current.photos;
+    } catch (e) { toast(e.message, 'bad'); }
+  }
+  toast('Photos added', 'good');
+  renderProps();
+}
+
+/* ══════════════════════════════════════════════════════════
+   SAVE / DELETE
+══════════════════════════════════════════════════════════ */
+const TEXT_F = ['address','suburb','postcode','listing_url','price_note','agent_name','agent_phone',
+  'agent_email','agency','property_type','parking_type','available_date','lease_term','furnished',
+  'pets','heating','cooling','laundry','outdoor','storage_space','internet','bills_included',
+  'transport','description','status','pros','cons','red_flags','notes'];
+const NUM_F = ['price_per_week','bedrooms','bathrooms','car_spaces','bond'];
+
+function collect() {
+  TEXT_F.forEach(f => { const el = $('d-' + f); if (el) current[f] = el.value.trim(); });
+  NUM_F.forEach(f => {
+    const el = $('d-' + f); if (!el) return;
+    const v = el.value.trim();
+    current[f] = v === '' ? null : (isNaN(parseFloat(v)) ? null : parseFloat(v));
+  });
+}
+
+async function saveProp(quiet) {
+  collect();
+  if (!current.address && !current.listing_url) {
+    toast('Add an address or listing URL before saving.', 'bad'); return false;
+  }
+  if (!sbReady()) { toast('Connect Supabase in Settings first.', 'bad'); return false; }
+  $('save-btn').disabled = true;
+  try {
+    const payload = { ...current };
+    delete payload.created_at; delete payload.updated_at;
+    let row;
+    if (current.id) { delete payload.id; row = await updateRow(current.id, payload); }
+    else            { row = await insertRow(payload); }
+    if (row) {
+      const i = DB.findIndex(p => p.id === row.id);
+      if (i >= 0) DB[i] = row; else DB.unshift(row);
+      current.id = row.id;
+      localStorage.setItem(LS.cache, JSON.stringify(DB));
+    }
+    dirty = false;
+    renderAll();
+    if (!quiet) { toast('Saved', 'good'); closeDetail(true); }
+    setSync('synced · ' + DB.length, 'ok');
+    return true;
+  } catch (e) {
+    toast(e.message, 'bad'); return false;
+  } finally { $('save-btn').disabled = false; }
+}
+
+async function deleteProp() {
+  if (!current.id) { closeDetail(true); return; }
+  if (!confirm('Delete this property and its notes for good?')) return;
+  try {
+    for (const ph of (current.photos || [])) if (ph.path) await removePhoto(ph.path);
+    await deleteRow(current.id);
+    DB = DB.filter(p => p.id !== current.id);
+    picks = picks.filter(x => x !== current.id);
+    localStorage.setItem(LS.cache, JSON.stringify(DB));
+    renderAll(); closeDetail(true); toast('Deleted');
+  } catch (e) { toast(e.message, 'bad'); }
+}
+
+async function archiveProp() {
+  current.archived = !current.archived;
+  $('arch-btn').textContent = current.archived ? 'Unarchive' : 'Archive';
+  dirty = true;
+  toast(current.archived ? 'Marked archived — save to confirm' : 'Unarchived — save to confirm');
+}
+
+function closeDetail(force) {
+  if (!force && dirty && !confirm('Close without saving your changes?')) return;
+  $('detail-modal').classList.remove('open');
+  current = null; dirty = false;
+}
+function closeModal(id) { $(id).classList.remove('open'); }
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if ($('lightbox').classList.contains('open')) return $('lightbox').classList.remove('open');
+    if ($('detail-modal').classList.contains('open')) return closeDetail();
+    if ($('import-modal').classList.contains('open')) return closeModal('import-modal');
+  }
+  if ((e.metaKey || e.ctrlKey) && e.key === 's' && $('detail-modal').classList.contains('open')) {
+    e.preventDefault(); saveProp();
+  }
+});
+
+/* ══════════════════════════════════════════════════════════
+   GEMINI EXTRACTION
+══════════════════════════════════════════════════════════ */
+const EXTRACT_SCHEMA = `{
+ "address": "full street address including street number",
+ "suburb": "",
+ "postcode": "",
+ "price_per_week": number or null,
+ "price_note": "exact price text as written, e.g. '$650 per week' or 'Contact agent'",
+ "bond": number or null,
+ "bedrooms": number or null,
+ "bathrooms": number or null,
+ "car_spaces": number or null,
+ "parking_type": "Garage | Carport | Off-street | On-street permit | None | ''",
+ "property_type": "House | Apartment | Unit | Townhouse | Villa | Studio | Duplex | ''",
+ "available_date": "as written, e.g. '12 Aug 2026' or 'Now'",
+ "lease_term": "e.g. '12 months'",
+ "furnished": "Unfurnished | Part furnished | Fully furnished | ''",
+ "pets": "Allowed | On application | Not allowed | Not stated",
+ "heating": "", "cooling": "", "laundry": "", "outdoor": "",
+ "storage_space": "", "internet": "", "bills_included": "", "transport": "",
+ "agent_name": "", "agency": "", "agent_phone": "", "agent_email": "",
+ "description": "the listing's own description text, trimmed to 800 characters",
+ "inspections": [ { "starts_at": "ISO 8601 local datetime e.g. 2026-08-01T10:30", "note": "" } ]
+}`;
+
+function extractPrompt(body) {
+  return 'You are reading an Australian rental property listing. Extract the fields below.\n\n' +
+    'Rules:\n' +
+    '- Reply with ONE JSON object and nothing else. No markdown, no code fences, no commentary.\n' +
+    '- Use null for numbers you cannot find and "" for text you cannot find. Never invent a value.\n' +
+    '- price_per_week must be the weekly rent as a plain number. If the listing quotes a monthly or ' +
+    'calendar-month figure, convert it to weekly and say so in price_note.\n' +
+    '- car_spaces counts total covered plus uncovered spaces.\n' +
+    '- inspections: include every open-for-inspection time shown, in the property\'s local time.\n\n' +
+    'Schema:\n' + EXTRACT_SCHEMA + '\n\n' + body;
+}
+
+async function callGemini(payload) {
+  const key = cfg(LS.gmKey);
+  if (!key) throw new Error('Add your Gemini API key in Settings first.');
+  const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' +
+    gmModel() + ':generateContent?key=' + key,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message || ('Gemini error ' + res.status));
+  const parts = data?.candidates?.[0]?.content?.parts || [];
+  const text = parts.map(p => p.text || '').join('').trim();
+  if (!text) throw new Error('Gemini returned nothing usable. Try the paste-the-page fallback below.');
+  return text;
+}
+
+function parseJsonLoose(text) {
+  let t = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+  const a = t.indexOf('{'), b = t.lastIndexOf('}');
+  if (a >= 0 && b > a) t = t.slice(a, b + 1);
+  return JSON.parse(t);
+}
+
+function openImport() {
+  $('imp-url').value = ''; $('imp-text').value = ''; $('imp-status').innerHTML = '';
+  $('import-modal').classList.add('open');
+  setTimeout(() => $('imp-url').focus(), 60);
+}
+
+function skipToBlank() {
+  const url = $('imp-url').value.trim();
+  closeModal('import-modal');
+  openDetail(null);
+  if (url) { $('d-listing_url').value = url; dirty = true; }
+}
+
+async function runExtract(fromText) {
+  const url  = $('imp-url').value.trim();
+  const text = $('imp-text').value.trim();
+  const st   = $('imp-status');
+
+  if (fromText && !text) { toast('Paste the listing text first.'); return; }
+  if (!fromText && !url) { toast('Paste the listing URL first.'); return; }
+
+  st.innerHTML = '<div class="note-box"><span class="spin"></span>Reading the listing…</div>';
+  $('imp-go').disabled = true;
+
+  const payload = fromText
+    ? { contents: [{ parts: [{ text: extractPrompt('Listing page text:\n\n' + text.slice(0, 120000)) }] }] }
+    : { contents: [{ parts: [{ text: extractPrompt('Listing URL: ' + url) }] }],
+        tools: [{ url_context: {} }] };
+
+  try {
+    const raw = await callGemini(payload);
+    const data = parseJsonLoose(raw);
+    const filled = Object.keys(data).filter(k => data[k] !== null && data[k] !== '' &&
+                    !(Array.isArray(data[k]) && !data[k].length)).length;
+    if (!filled) throw new Error('The page came back empty — the site likely blocked the fetch.');
+
+    closeModal('import-modal');
+    applyExtract(data, url);
+    toast(filled + ' fields found — check the amber ones', 'good');
+  } catch (e) {
+    st.innerHTML = '<div class="note-box" style="border-color:var(--red-border);color:var(--red-soft)">' +
+      esc(e.message) + '<br><br>Copy the listing page and use the paste box below, ' +
+      'or press <b>Skip, enter manually</b>.</div>';
+  } finally { $('imp-go').disabled = false; }
+}
+
+function applyExtract(d, url) {
+  const rec = blank();
+  ['address','suburb','postcode','price_note','parking_type','property_type','available_date',
+   'lease_term','furnished','pets','heating','cooling','laundry','outdoor','storage_space',
+   'internet','bills_included','transport','agent_name','agency','agent_phone','agent_email',
+   'description'].forEach(k => { if (d[k]) rec[k] = String(d[k]).trim(); });
+  ['price_per_week','bond','bedrooms','bathrooms','car_spaces'].forEach(k => {
+    const n = parseFloat(d[k]); rec[k] = isNaN(n) ? null : n;
+  });
+  rec.listing_url = url || d.listing_url || '';
+  rec.verified = {};                       // nothing AI-supplied counts as verified
+  rec.inspections = (Array.isArray(d.inspections) ? d.inspections : [])
+    .map(i => {
+      const t = new Date(i.starts_at);
+      return isNaN(t) ? null : { starts_at: t.toISOString(), duration_min: 15,
+                                 note: i.note || '', attended: false };
+    }).filter(Boolean);
+  if (rec.inspections.length) rec.status = 'booked';
+
+  current = rec; dirty = true;
+  $('detail-title').textContent = 'New property — check the key facts';
+  $('arch-btn').textContent = 'Archive';
+  drawDetail();
+  $('detail-modal').classList.add('open');
+}
+
+/* ══════════════════════════════════════════════════════════
+   COMPARE TAB
+══════════════════════════════════════════════════════════ */
+const CMP_ROWS = [
+  { lab:'Rent / week',   get:p => p.price_per_week, fmt:v => money(v) + (v == null ? '' : ' /wk'), best:'low' },
+  { lab:'Bond',          get:p => p.bond,           fmt:v => money(v), best:'low' },
+  { lab:'Bond as weeks', get:p => (p.bond && p.price_per_week) ? +(p.bond / p.price_per_week).toFixed(1) : null,
+                         fmt:v => v == null ? '—' : v + ' wks', best:'low' },
+  { lab:'Bedrooms',      get:p => p.bedrooms,   fmt:v => v ?? '—', best:'high' },
+  { lab:'Bathrooms',     get:p => p.bathrooms,  fmt:v => v ?? '—', best:'high' },
+  { lab:'Car spaces',    get:p => p.car_spaces, fmt:v => v ?? '—', best:'high' },
+  { lab:'$ per bedroom', get:p => (p.price_per_week && p.bedrooms) ? Math.round(p.price_per_week / p.bedrooms) : null,
+                         fmt:v => v == null ? '—' : '$' + v, best:'low' },
+  { lab:'Property type', get:p => p.property_type },
+  { lab:'Parking',       get:p => p.parking_type },
+  { lab:'Available',     get:p => p.available_date },
+  { lab:'Lease term',    get:p => p.lease_term },
+  { lab:'Furnishing',    get:p => p.furnished },
+  { lab:'Bills included',get:p => p.bills_included },
+  { lab:'Pets',          get:p => p.pets },
+  { lab:'Heating',       get:p => p.heating },
+  { lab:'Cooling',       get:p => p.cooling },
+  { lab:'Laundry',       get:p => p.laundry },
+  { lab:'Outdoor',       get:p => p.outdoor },
+  { lab:'Storage',       get:p => p.storage_space },
+  { lab:'Internet',      get:p => p.internet },
+  { lab:'Transport',     get:p => p.transport },
+  { lab:'My rating',     get:p => p.rating || 0, fmt:v => '★'.repeat(v) + '☆'.repeat(5 - v), best:'high' },
+  { lab:'What works',    get:p => p.pros },
+  { lab:'What does not', get:p => p.cons },
+  { lab:'Red flags',     get:p => p.red_flags },
+  { lab:'Agent',         get:p => [p.agent_name, p.agency, p.agent_phone].filter(Boolean).join(' · ') },
+  { lab:'Next inspection', get:p => { const n = nextInspection(p); return n ? fmtDT(n.starts_at) : ''; } }
+];
+
+function renderCompare() {
+  const sel = picks.map(id => DB.find(p => p.id === id)).filter(Boolean);
+  const out = $('cmp-out');
+  refreshCounts();
+  if (!sel.length) {
+    out.innerHTML = '<div class="empty">Nothing selected yet.<br>' +
+      'Go to Properties and tick <b>cmp</b> on up to three cards.</div>';
+    return;
+  }
+
+  const head = '<thead><tr><th class="rowlab"></th>' + sel.map(p =>
+    '<th><div class="cmp-head-addr">' + (esc(p.address) || 'Untitled') + '</div>' +
+    '<div class="cmp-head-sub">' + (esc(p.suburb) || '—') + '</div>' +
+    (unverifiedCount(p) ? '<span class="verify-flag">' + unverifiedCount(p) + ' unverified</span>' : '') +
+    '</th>').join('') + '</tr></thead>';
+
+  const photoRow = '<tr><th class="rowlab">Photos</th>' + sel.map(p =>
+    '<td>' + ((p.photos || []).slice(0, 3).map(x =>
+      '<img src="' + esc(x.url) + '" style="width:74px;height:56px;object-fit:cover;border-radius:4px;' +
+      'border:1px solid var(--border);margin:0 4px 4px 0;cursor:zoom-in" onclick="zoom(\'' + esc(x.url) + '\')">'
+    ).join('') || '<span class="miss">—</span>') + '</td>').join('') + '</tr>';
+
+  const body = CMP_ROWS.map(r => {
+    const vals = sel.map(r.get);
+    let bestIdx = [];
+    if (r.best) {
+      const nums = vals.map(v => (typeof v === 'number' && !isNaN(v)) ? v : null);
+      const valid = nums.filter(v => v !== null);
+      if (valid.length > 1) {
+        const target = r.best === 'low' ? Math.min(...valid) : Math.max(...valid);
+        if (new Set(valid).size > 1) nums.forEach((v, i) => { if (v === target) bestIdx.push(i); });
+      }
+    }
+    return '<tr><th class="rowlab">' + r.lab + '</th>' + vals.map((v, i) => {
+      const txt = r.fmt ? r.fmt(v) : (v || '');
+      const empty = txt === '' || txt === '—';
+      return '<td class="' + (bestIdx.includes(i) ? 'best' : (empty ? 'miss' : '')) + '">' +
+             (empty ? '—' : esc(txt)) + '</td>';
+    }).join('') + '</tr>';
+  }).join('');
+
+  out.innerHTML = '<div class="cmp-wrap"><table class="cmp">' + head + '<tbody>' +
+    photoRow + body + '</tbody></table></div>' +
+    '<div class="note-box" style="margin-top:12px">Green marks the better figure on that row. ' +
+    'A dash means the field is still blank — worth asking the agent.</div>';
+}
+
+/* ══════════════════════════════════════════════════════════
+   CALENDAR TAB
+══════════════════════════════════════════════════════════ */
+function weekendBounds(offsetWeeks) {
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const dow = now.getDay();                 // 0 Sun … 6 Sat
+  const toSat = (6 - dow + 7) % 7;
+  const sat = new Date(now); sat.setDate(now.getDate() + toSat + (offsetWeeks * 7));
+  const end = new Date(sat); end.setDate(sat.getDate() + 2);
+  return [sat, end];
+}
+
+function calItems() {
+  const range = $('c-range').value;
+  const sub = $('c-suburb').value;
+  let items = allInspections();
+  const now = new Date();
+
+  if (range === 'past')      items = items.filter(i => new Date(i.starts_at) < now);
+  else if (range === 'all')  items = items.filter(i => new Date(i.starts_at) >= new Date(now - 6 * 36e5));
+  else if (range === '7')    { const e = new Date(now); e.setDate(e.getDate() + 7);
+                               items = items.filter(i => { const d = new Date(i.starts_at); return d >= now && d <= e; }); }
+  else { const [a, b] = weekendBounds(range === 'next' ? 1 : 0);
+         items = items.filter(i => { const d = new Date(i.starts_at); return d >= a && d < b; }); }
+
+  if (sub) items = items.filter(i => (i._p.suburb || '') === sub);
+  if (range === 'past') items.reverse();
+  return items;
+}
+
+function renderCal() {
+  const suburbs = [...new Set(DB.map(p => p.suburb).filter(Boolean))].sort();
+  const cur = $('c-suburb').value;
+  $('c-suburb').innerHTML = '<option value="">All suburbs</option>' +
+    suburbs.map(s => '<option' + (s === cur ? ' selected' : '') + '>' + esc(s) + '</option>').join('');
+
+  const items = calItems();
+  const out = $('cal-out');
+  refreshCounts();
+  if (!items.length) {
+    out.innerHTML = '<div class="empty">No inspections in this window.<br>' +
+      'Open a property and add its times under <b>Inspections</b>.</div>';
+    return;
+  }
+
+  const days = {};
+  items.forEach(i => { const k = dayKey(i.starts_at); (days[k] = days[k] || []).push(i); });
+  const bySuburb = $('c-sort').value === 'suburb';
+
+  out.innerHTML = Object.keys(days).sort().map(k => {
+    let list = days[k].slice().sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+    if (bySuburb) list.sort((a, b) => (a._p.suburb || 'zzz').localeCompare(b._p.suburb || 'zzz') ||
+                                      (new Date(a.starts_at) - new Date(b.starts_at)));
+    const d = new Date(k + 'T12:00:00');
+    const subs = [...new Set(list.map(i => i._p.suburb).filter(Boolean))];
+    const first = new Date(list[0].starts_at), last = new Date(list[list.length - 1].starts_at);
+
+    const rows = list.map((i, idx) => {
+      const start = new Date(i.starts_at);
+      const end = new Date(start.getTime() + (i.duration_min || 15) * 60000);
+      let cls = '', warn = '';
+      if (!bySuburb && idx > 0) {
+        const prev = list[idx - 1];
+        const pEnd = new Date(new Date(prev.starts_at).getTime() + (prev.duration_min || 15) * 60000);
+        const gap = Math.round((start - pEnd) / 60000);
+        if (gap < 0) { cls = ' clash'; warn = '<div class="cal-warn">overlaps ' + esc(prev._p.suburb || 'previous') +
+                                              ' by ' + Math.abs(gap) + ' min</div>'; }
+        else if (gap < 20) { cls = ' tight'; warn = '<div class="cal-warn soft">only ' + gap +
+                             ' min after ' + esc(prev._p.suburb || 'the last one') + '</div>'; }
+      }
+      return '<div class="cal-item' + cls + '" onclick="goProp(\'' + i._p.id + '\')">' +
+        '<div class="cal-time">' + fmtTime(i.starts_at) + '</div>' +
+        '<div class="cal-body">' +
+          '<div class="cal-addr">' + (esc(i._p.address) || 'Untitled') + '</div>' +
+          '<div class="cal-sub">' + (esc(i._p.suburb) || '—') + ' · ' + money(i._p.price_per_week) + '/wk · ' +
+            (i._p.bedrooms ?? '?') + 'br · ends ' + fmtTime(end.toISOString()) + '</div>' +
+          (i.note ? '<div class="cal-sub">' + esc(i.note) + '</div>' : '') + warn +
+        '</div>' +
+        '<div>' + (i.attended ? '<span class="pill approved">done</span>' :
+                   '<span class="pill ' + esc(i._p.status) + '">' + statusLabel(i._p.status) + '</span>') + '</div>' +
+      '</div>';
+    }).join('');
+
+    return '<div class="cal-day"><div class="cal-day-head">' +
+      '<div class="cal-date">' + d.toLocaleDateString(undefined,
+        { weekday:'long', day:'numeric', month:'long' }) + '</div>' +
+      '<div class="cal-meta">' + list.length + ' inspection' + (list.length > 1 ? 's' : '') +
+        ' · ' + fmtTime(first.toISOString()) + '–' + fmtTime(last.toISOString()) +
+        (subs.length ? ' · ' + esc(subs.join(', ')) : '') + '</div>' +
+      '</div>' + rows + '</div>';
+  }).join('');
+}
+
+function goProp(id) { goTab('properties'); openDetail(id); }
+
+function copyDayPlan() {
+  const items = calItems();
+  if (!items.length) { toast('Nothing to copy in this window.'); return; }
+  const days = {};
+  items.forEach(i => { const k = dayKey(i.starts_at); (days[k] = days[k] || []).push(i); });
+  const txt = Object.keys(days).sort().map(k => {
+    const d = new Date(k + 'T12:00:00');
+    return d.toLocaleDateString(undefined, { weekday:'long', day:'numeric', month:'long' }) + '\n' +
+      days[k].sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at)).map(i =>
+        '  ' + fmtTime(i.starts_at) + '  ' + (i._p.address || 'Untitled') +
+        (i._p.suburb ? ', ' + i._p.suburb : '') +
+        '  — ' + money(i._p.price_per_week) + '/wk, ' + (i._p.bedrooms ?? '?') + 'br' +
+        (i._p.agent_phone ? '  (' + i._p.agent_phone + ')' : '')
+      ).join('\n');
+  }).join('\n\n');
+  navigator.clipboard.writeText(txt)
+    .then(() => toast('Plan copied', 'good'))
+    .catch(() => toast('Could not reach the clipboard', 'bad'));
+}
+
+/* ══════════════════════════════════════════════════════════
+   SETTINGS
+══════════════════════════════════════════════════════════ */
+function saveSupabase() {
+  localStorage.setItem(LS.sbUrl, $('s-sb-url').value.trim());
+  localStorage.setItem(LS.sbKey, $('s-sb-key').value.trim());
+  toast('Saved', 'good');
+  loadAll();
+}
+async function testSupabase() {
+  try {
+    await sb('/rest/v1/properties?select=id&limit=1');
+    toast('Connection works', 'good'); setSync('synced · ' + DB.length, 'ok');
+  } catch (e) { toast(e.message, 'bad'); }
+}
+function saveGemini() {
+  localStorage.setItem(LS.gmKey, $('s-gm-key').value.trim());
+  localStorage.setItem(LS.gmModel, $('s-gm-model').value.trim());
+  toast('Saved', 'good');
+}
+async function listModels() {
+  const key = cfg(LS.gmKey);
+  if (!key) { toast('Paste a Gemini key first.', 'bad'); return; }
+  $('model-list').innerHTML = '<div class="note-box"><span class="spin"></span>Checking…</div>';
+  try {
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?key=' + key);
+    const d = await r.json();
+    if (!r.ok) throw new Error(d?.error?.message || 'Request failed');
+    const names = (d.models || [])
+      .filter(m => (m.supportedGenerationMethods || []).includes('generateContent'))
+      .map(m => m.name.replace('models/', ''));
+    $('model-list').innerHTML = '<div class="note-box">' + names.map(n =>
+      '<button class="btn-ghost" style="margin:2px 4px 2px 0" onclick="pickModel(\'' + n + '\')">' +
+      esc(n) + '</button>').join('') + '</div>';
+  } catch (e) { $('model-list').innerHTML = '<div class="note-box" style="color:var(--red-soft)">' + esc(e.message) + '</div>'; }
+}
+function pickModel(n) { $('s-gm-model').value = n; localStorage.setItem(LS.gmModel, n); toast('Model set to ' + n, 'good'); }
+
+function exportJson() {
+  const blob = new Blob([JSON.stringify(DB, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'rental-tracker-' + new Date().toISOString().slice(0, 10) + '.json';
+  a.click(); URL.revokeObjectURL(a.href);
+}
+async function importJson(inp) {
+  const f = inp.files[0]; if (!f) return;
+  inp.value = '';
+  try {
+    const rows = JSON.parse(await f.text());
+    if (!Array.isArray(rows)) throw new Error('That file is not a tracker backup.');
+    if (!confirm('Add ' + rows.length + ' properties to Supabase? Existing records stay untouched.')) return;
+    let n = 0;
+    for (const r of rows) {
+      const rec = { ...blank(), ...r };
+      delete rec.id; delete rec.created_at; delete rec.updated_at;
+      try { await insertRow(rec); n++; } catch (e) { /* skip bad row */ }
+    }
+    toast('Restored ' + n + ' properties', 'good');
+    loadAll();
+  } catch (e) { toast(e.message, 'bad'); }
+}
+
+/* ══════════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════════ */
+(function init() {
+  $('s-sb-url').value   = cfg(LS.sbUrl);
+  $('s-sb-key').value   = cfg(LS.sbKey);
+  $('s-gm-key').value   = cfg(LS.gmKey);
+  $('s-gm-model').value = gmModel();
+  try { picks = JSON.parse(localStorage.getItem(LS.picks) || '[]'); } catch (e) { picks = []; }
+
+  const cached = localStorage.getItem(LS.cache);
+  if (cached) { try { DB = JSON.parse(cached); } catch (e) {} }
+
+  window.addEventListener('beforeunload', e => {
+    if (dirty) { e.preventDefault(); e.returnValue = ''; }
+  });
+
+  renderAll();
+  if (sbReady()) loadAll();
+  else { setSync('open settings', 'err'); goTab('settings'); }
+})();
+</script>
+</body>
+</html>
